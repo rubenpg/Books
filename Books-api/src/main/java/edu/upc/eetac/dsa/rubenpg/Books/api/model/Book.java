@@ -4,11 +4,15 @@ import java.util.List;
 
 import javax.ws.rs.core.Link;
  
+
+
 import org.glassfish.jersey.linking.Binding;
 import org.glassfish.jersey.linking.InjectLink;
 import org.glassfish.jersey.linking.InjectLink.Style;
 import org.glassfish.jersey.linking.InjectLinks;
  
+
+
 import edu.upc.eetac.dsa.rubenpg.Books.api.MediaType;
 import edu.upc.eetac.dsa.rubenpg.Books.api.BookResource;
  
@@ -26,6 +30,7 @@ public class Book {
 	private String editiondate;
 	private String impresiondate;
 	private String editorial;
+	private String username;
  
 	public List<Link> getLinks() {
 		return links;
@@ -97,5 +102,13 @@ public class Book {
 
 	public void setEditorial(String editorial) {
 		this.editorial = editorial;
+	}
+	
+	public String getUsername() {
+		return username;
+	}
+ 
+	public void setUsername(String username) {
+		this.username = username;
 	}
 }
