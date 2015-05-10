@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 
 import javax.sql.DataSource;
 import javax.ws.rs.BadRequestException;
@@ -20,7 +21,10 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.ServerErrorException;
+import javax.ws.rs.core.CacheControl;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.EntityTag;
+import javax.ws.rs.core.Request;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 
@@ -32,8 +36,8 @@ import edu.upc.eetac.dsa.rubenpg.Books.api.MediaType;
 @Path("/books")
 public class BookResource {
 	private DataSource ds = DataSourceSPA.getInstance().getDataSource();
-
-	private String GET_BOOKS_QUERY = "select * from books where bookid < ifnull(?, 1)  order by bookid asc limit ?";
+	private String GET_BOOKS_QUERY = "select b.* from books b where b.creation_timestamp < ifnull(?, now())  order by creation_timestamp desc limit ?";
+	private String GET_BOOKS_QUERY_FROM_LAST = "select b.*, u.name from books b, users u where u.username=b.username and b.creation_timestamp > ? order by creation_timestamp desc";
 	
 	@GET
 	@Produces(MediaType.BOOKS_API_BOOK_COLLECTION)
@@ -50,9 +54,25 @@ public class BookResource {
 		}
 	 
 		PreparedStatement stmt = null;
-		try {
-			stmt = conn.prepareStatement(GET_BOOKS_QUERY);
+		try {	
+			boolean updateFromLast = after > 0;
+			stmt = updateFromLast ? conn
+					.prepareStatement(GET_BOOKS_QUERY_FROM_LAST) : conn
+					.prepareStatement(GET_BOOKS_QUERY);
+			if (updateFromLast) {
+				stmt.setTimestamp(1, new Timestamp(after));
+			} else {
+				if (before > 0)
+					stmt.setTimestamp(1, new Timestamp(before));
+				else
+					stmt.setTimestamp(1, null);
+				length = (length <= 0) ? 5 : length;
+				stmt.setInt(2, length);
+			}
 			ResultSet rs = stmt.executeQuery();
+			boolean first = true;
+			long oldestTimestamp = 0;
+			
 			while (rs.next()) {
 				Book book = new Book();
 				book.setBookid(rs.getInt("bookid"));
@@ -63,8 +83,17 @@ public class BookResource {
 				book.setEditiondate(rs.getString("editiondate"));
 				book.setImpresiondate(rs.getString("impresiondate"));
 				book.setEditorial(rs.getString("editorial"));
+				book.setLastModified(rs.getTimestamp("last_modified").getTime());
+				book.setCreationTimestamp(rs.getTimestamp("creation_timestamp").getTime());
+				oldestTimestamp = rs.getTimestamp("creation_timestamp").getTime();
+				book.setLastModified(oldestTimestamp);
+				if (first) {
+					first = false;
+					books.setNewestTimestamp(book.getCreationTimestamp());
+				}
 				books.addBook(book);
 			}
+			books.setOldestTimestamp(oldestTimestamp);
 		} catch (SQLException e) {
 			throw new ServerErrorException(e.getMessage(),
 					Response.Status.INTERNAL_SERVER_ERROR);
@@ -86,48 +115,30 @@ public class BookResource {
 	@GET
 	@Path("/{bookid}")
 	@Produces(MediaType.BOOKS_API_BOOK)
-	public Book getBook(@PathParam("bookid") String bookid) {
-		Book book = new Book();
+	public Response getBook(@PathParam("bookid") String bookid,
+			@Context Request request) {
+		// Create CacheControl
+		CacheControl cc = new CacheControl();
+		Book book = getBookFromDatabase(bookid);
+		 
+		// Calculate the ETag on last modified date of user resource
+		EntityTag eTag = new EntityTag(Long.toString(book.getLastModified()));
 	 
-		Connection conn = null;
-		try {
-			conn = ds.getConnection();
-		} catch (SQLException e) {
-			throw new ServerErrorException("Could not connect to the database " + e,
-					Response.Status.SERVICE_UNAVAILABLE);
+		// Verify if it matched with etag available in http request
+		Response.ResponseBuilder rb = request.evaluatePreconditions(eTag);
+	 
+		// If ETag matches the rb will be non-null;
+		// Use the rb to return the response without any further processing
+		if (rb != null) {
+			return rb.cacheControl(cc).tag(eTag).build();
 		}
 	 
-		PreparedStatement stmt = null;
-		try {
-			stmt = conn.prepareStatement(GET_BOOK_BY_ID_QUERY);
-			stmt.setInt(1, Integer.valueOf(bookid));
-			ResultSet rs = stmt.executeQuery();
-			if (rs.next()) {
-				book.setBookid(rs.getInt("bookid"));
-				book.setTitle(rs.getString("title"));
-				book.setAuthor(rs.getString("author"));
-				book.setLanguage(rs.getString("language"));
-				book.setEdition(rs.getString("edition"));
-				book.setEditiondate(rs.getString("editiondate"));
-				book.setImpresiondate(rs.getString("impresiondate"));
-				book.setEditorial(rs.getString("editorial"));
-			} else {
-				throw new NotFoundException("There's no sting with stingid="
-						+ bookid);
-						}
-		} catch (SQLException e) {
-			throw new ServerErrorException(e.getMessage(),
-					Response.Status.INTERNAL_SERVER_ERROR);
-		} finally {
-			try {
-				if (stmt != null)
-					stmt.close();
-				conn.close();
-			} catch (SQLException e) {
-			}
-		}
+		// If rb is null then either it is first time request; or resource is
+		// modified
+		// Get the updated representation and return with Etag attached to it
+		rb = Response.ok(book).cacheControl(cc).tag(eTag);
 	 
-		return book;
+		return rb.build();
 	}
 	
 	
@@ -151,8 +162,7 @@ public class BookResource {
 		try {
 			stmt = conn.prepareStatement(INSERT_BOOK_QUERY,
 					Statement.RETURN_GENERATED_KEYS);
-			stmt.setString(1, security.getUserPrincipal().getName());
-	 
+			stmt.setString(1, security.getUserPrincipal().getName());	 
 			stmt.setString(2, book.getTitle());
 			stmt.setString(3, book.getAuthor());
 			stmt.setString(4, book.getLanguage());
@@ -166,7 +176,7 @@ public class BookResource {
 			if (rs.next()) {
 				int bookid = rs.getInt(1);
 	 
-				book = getBook(Integer.toString(bookid));
+				book = getBookFromDatabase(Integer.toString(bookid));
 			} else {
 				// Something has failed...
 			}
@@ -192,6 +202,7 @@ public class BookResource {
 	@Consumes(MediaType.BOOKS_API_BOOK)
 	@Produces(MediaType.BOOKS_API_BOOK)
 	public Book updateBook(@PathParam("bookid") String bookid, Book book) {
+		validateUser(bookid);
 		validateUpdateBook(book);
 		Connection conn = null;
 		try {
@@ -215,9 +226,9 @@ public class BookResource {
 	 
 			int rows = stmt.executeUpdate();
 			if (rows == 1)
-				book = getBook(bookid);
+				book = getBookFromDatabase(bookid);
 			else {
-				throw new NotFoundException("There's no sting with stingid="
+				throw new NotFoundException("There's no sting with bookid="
 						+ bookid);
 			}
 	 
@@ -353,10 +364,11 @@ public class BookResource {
 				book.setEditiondate(rs.getString("editiondate"));
 				book.setImpresiondate(rs.getString("impresiondate"));
 				book.setEditorial(rs.getString("editorial"));
+				book.setLastModified(rs.getTimestamp("last_modified").getTime());
+				book.setCreationTimestamp(rs.getTimestamp("creation_timestamp").getTime());
 			} else {
-				throw new NotFoundException("There's no sting with bookid="
-						+ bookid);
-			}
+				throw new NotFoundException("There's no book with bookid="+ bookid);
+				}
 		} catch (SQLException e) {
 			throw new ServerErrorException(e.getMessage(),
 					Response.Status.INTERNAL_SERVER_ERROR);
@@ -371,17 +383,16 @@ public class BookResource {
 	 
 		return book;
 	}
-	
-	@Context
-	private SecurityContext security;
-	
+
 	private void validateUser(String bookid) {
 	    Book book = getBookFromDatabase(bookid);
 	    String username = book.getUsername();
-		if (!security.getUserPrincipal().getName()
-				.equals(username))
+		if (!security.getUserPrincipal().getName().equals(username))
 			throw new ForbiddenException(
-					"You are not allowed to modify this sting.");
+					"You are not allowed to modify this book.");
 	}
+	
+	@Context
+	private SecurityContext security;
 	
 }

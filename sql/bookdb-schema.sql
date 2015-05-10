@@ -3,6 +3,20 @@ create database bookdb;
  
 use bookdb;
  
+create table users (
+	username	varchar(20) not null primary key,
+	userpass	char(32) not null,
+	name		varchar(70) not null,
+	email		varchar(255) not null
+);
+ 
+create table user_roles (
+	username	varchar(20) not null,
+	rolename 	varchar(20) not null,
+	foreign key(username) references users(username) on delete cascade,
+	primary key (username, rolename)
+);
+
 create table authors (
 	name		varchar(30) not null primary key
 );
@@ -16,21 +30,9 @@ create table books (
 	editiondate	varchar(30) not null,
 	impresiondate	varchar(30) not null,
 	editorial	varchar(30) not null,
+	last_modified		timestamp default current_timestamp ON UPDATE CURRENT_TIMESTAMP,
+	creation_timestamp	datetime not null default current_timestamp,
 	foreign key(author) references authors(name)
-);
-
-create table users (
-	username	varchar(20) not null primary key,
-	userpass	char(32) not null,
-	name		varchar(70) not null,
-	email		varchar(255) not null
-);
- 
-create table user_roles (
-	username	varchar(20) not null,
-	rolename 	varchar(20) not null,
-	foreign key(username) references users(username) on delete cascade,
-	primary key (username, rolename)
 );
  
 create table reviews (

@@ -18,7 +18,8 @@ public class BooksRootAPI {
             @InjectLink(resource = BooksRootAPIResource.class, style = Style.ABSOLUTE, rel = "self bookmark home", title = "Books Root API"),
             @InjectLink(resource = BookResource.class, style = Style.ABSOLUTE, rel = "collection", title = "Latest books", type = MediaType.BOOKS_API_BOOK_COLLECTION),
             @InjectLink(resource = BookResource.class, style = Style.ABSOLUTE, rel = "create-book", title = "Create new book", type = MediaType.BOOKS_API_BOOK)})
-    	private List<Link> links;
+    	
+	private List<Link> links;
  
 	public List<Link> getLinks() {
 		return links;

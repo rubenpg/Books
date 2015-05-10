@@ -18,9 +18,8 @@ import edu.upc.eetac.dsa.rubenpg.Books.api.BookResource;
  
 public class Book {
 	@InjectLinks({
-			@InjectLink(resource = BookResource.class, style = Style.ABSOLUTE, rel = "books", title = "Books List", type = MediaType.BOOKS_API_BOOK_COLLECTION),
-			@InjectLink(value = "/reviews?title={title}", style = Style.ABSOLUTE, rel = "reviews", title = "Reviews List", type = MediaType.BOOKS_API_REVIEW_COLLECTION, bindings = { @Binding(name = "title", value = "${instance.title}") }),
-			@InjectLink(resource = BookResource.class, style = Style.ABSOLUTE, rel = "self edit", title = "Book", type = MediaType.BOOKS_API_BOOK, method = "getbook", bindings = @Binding(name = "bookid", value = "${instance.bookid}")) })
+		@InjectLink(resource = BookResource.class, style = Style.ABSOLUTE, rel = "books", title = "Latest books", type = MediaType.BOOKS_API_BOOK_COLLECTION),
+		@InjectLink(resource = BookResource.class, style = Style.ABSOLUTE, rel = "self edit", title = "Book", type = MediaType.BOOKS_API_BOOK, method = "getBook", bindings = @Binding(name = "bookid", value = "${instance.bookid}")) })
 	private List<Link> links;
 	private int bookid;
 	private String title;
@@ -31,6 +30,8 @@ public class Book {
 	private String impresiondate;
 	private String editorial;
 	private String username;
+	private long lastModified;
+	private long creationTimestamp;
  
 	public List<Link> getLinks() {
 		return links;
@@ -110,5 +111,20 @@ public class Book {
  
 	public void setUsername(String username) {
 		this.username = username;
+	}
+	public long getLastModified() {
+		return lastModified;
+	}
+	
+	public void setLastModified(long lastModified) {
+		this.lastModified = lastModified;
+	}
+	
+	public long getCreationTimestamp() {
+		return creationTimestamp;
+	}
+	
+	public void setCreationTimestamp(long creationTimestamp) {
+		this.creationTimestamp = creationTimestamp;
 	}
 }
