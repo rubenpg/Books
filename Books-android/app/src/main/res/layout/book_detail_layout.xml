@@ -28,14 +28,14 @@
         android:paddingRight="5dip" >
 
         <TextView
-            android:id="@+id/tvDetailUsername"
+            android:id="@+id/tvDetailEditorial"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="0.5"
             android:textAppearance="?android:attr/textAppearanceSmall" />
 
         <TextView
-            android:id="@+id/tvDetailDate"
+            android:id="@+id/tvDetailEdition"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="0.5"

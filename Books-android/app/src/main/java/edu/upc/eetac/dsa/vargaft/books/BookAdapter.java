@@ -13,8 +13,8 @@ import java.util.ArrayList;
 import edu.upc.eetac.dsa.vargaft.books.api.Book;
 
 public class BookAdapter extends BaseAdapter {
-    ArrayList<Book> data;
-    LayoutInflater inflater;
+    private ArrayList<Book> data;
+    private LayoutInflater inflater;
 
 
     public BookAdapter(Context context, ArrayList<Book> data) {
@@ -25,8 +25,7 @@ public class BookAdapter extends BaseAdapter {
 
     private static class ViewHolder {
         TextView tvTitle;
-        TextView tvUsername;
-        TextView tvDate;
+        TextView tvAuthor;
     }
 
     @Override
@@ -52,21 +51,16 @@ public class BookAdapter extends BaseAdapter {
             viewHolder = new ViewHolder();
             viewHolder.tvTitle = (TextView) convertView
                     .findViewById(R.id.tvTitle);
-            viewHolder.tvUsername = (TextView) convertView
-                    .findViewById(R.id.tvUsername);
-            viewHolder.tvDate = (TextView) convertView
-                    .findViewById(R.id.tvDate);
+            viewHolder.tvAuthor = (TextView) convertView
+                    .findViewById(R.id.tvAuthor);
             convertView.setTag(viewHolder);
         } else {
             viewHolder = (ViewHolder) convertView.getTag();
         }
-        String subject = data.get(position).getTitle();
-        String username = data.get(position).getUsername();
-        String date = SimpleDateFormat.getInstance().format(
-                data.get(position).getLastModified());
-        viewHolder.tvTitle.setText(subject);
-        viewHolder.tvUsername.setText(username);
-        viewHolder.tvDate.setText(date);
+        String title = data.get(position).getTitle();
+        String author = data.get(position).getAuthor();
+        viewHolder.tvTitle.setText(title);
+        viewHolder.tvAuthor.setText(author);
         return convertView;
     }
 }

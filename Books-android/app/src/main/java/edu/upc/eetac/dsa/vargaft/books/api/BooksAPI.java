@@ -92,8 +92,7 @@ public class BooksAPI {
 
         HttpURLConnection urlConnection = null;
         try {
-            urlConnection = (HttpURLConnection) new URL(rootAPI.getLinks()
-                    .get("books").getTarget()).openConnection();
+            urlConnection = (HttpURLConnection) new URL(rootAPI.getLinks().get("collection").getTarget()).openConnection();
             urlConnection.setRequestMethod("GET");
             urlConnection.setDoInput(true);
             urlConnection.connect();
@@ -223,7 +222,7 @@ public class BooksAPI {
         return book;
     }
 
-    public Book createBook(String title, String author, String language, String edition, String editiondate, String impresiondate, String editorial) throws AppException {
+    /*public Book createBook(String title, String author, String language, String edition, String editiondate, String impresiondate, String editorial) throws AppException {
         Book book = new Book();
         book.setTitle(title);
         book.setAuthor(author);
@@ -293,5 +292,5 @@ public class BooksAPI {
         jsonBook.put("impresiondate", book.getImpresiondate());
 
         return jsonBook;
-    }
+    }*/
 }

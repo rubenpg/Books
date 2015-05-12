@@ -9,15 +9,14 @@
         android:theme="@style/AppTheme" >
         <activity
             android:name=".BooksMainActivity"
-            android:noHistory="true">
+            android:label="Books" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".BooksMainActivity" />
-        <activity android:name=".BooksDetailActivity" />
+        <activity android:name=".BookDetailActivity" />
     </application>
     <uses-permission android:name="android.permission.INTERNET" />
 
